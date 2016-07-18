@@ -38,7 +38,7 @@ class MarkdownPPFileEventHandler(PatternMatchingEventHandler):
 
         # Logs time and file changed (with colors!)
         print(time.strftime("%c") + ":",
-            colors.MAGB + event.src_path, 
+            colors.MAGB + event.src_path,
             colors.GREEN + event.event_type,
             "and processed with MarkdownPP",
             colors.NORMAL)
@@ -95,7 +95,7 @@ else:
     else:
         md = sys.stdout
 
-    modules = MarkdownPP.modules.keys()
+    modules = list(MarkdownPP.modules.keys())
 
     if args.exclude:
         for module in args.exclude.split(','):
