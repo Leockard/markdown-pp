@@ -19,7 +19,7 @@ class Include(Module):
     Target paths can be absolute or relative to the file containing the command
     """
 
-    includere = re.compile("^!INCLUDE\s+(?:\"([^\"]+)\"|'([^']+)')\s*$")
+    includere = re.compile(r"^!INCLUDE\s+(?:\"([^\"]+)\"|'([^']+)')\s+({(.*?)})?$")
 
     # includes should happen before anything else
     priority = 0
@@ -41,6 +41,12 @@ class Include(Module):
 
         return transforms
 
+    def _process_args(self, args):
+        """Extract keyword: value template arguments from match group."""
+        arg_list = args.split(",")
+        arg_tuples = [[s.strip() for s in arg.split(":")] for arg in arg_list]
+        return dict(arg_tuples)
+
     def include(self, match, pwd=""):
         if match.group(1) is None:
             filename = match.group(2)
@@ -50,7 +56,8 @@ class Include(Module):
         if not path.isabs(filename):
             filename = path.join(pwd, filename)
 
-        if path.isfile(filename):
+        # if path.isfile(filename):
+        try:
             f = open(filename, "r")
             data = f.readlines()
             f.close()
@@ -58,13 +65,27 @@ class Include(Module):
             # recursively include file data
             linenum = 0
             for line in data:
-                match = self.includere.search(line)
-                if match:
+                recmatch = self.includere.search(line)
+                if recmatch:
                     dirname = path.dirname(filename)
-                    data[linenum:linenum+1] = self.include(match, dirname)
+                    data[linenum:linenum+1] = self.include(recmatch, dirname)
 
                 linenum += 1
 
+            # replace template keyword arguments
+            if match.group(4) is None:
+                args = {}
+            else:
+                args = self._process_args(match.group(4))
+
+            for arg_name, arg_val in args.items():
+                for linenum in range(len(data)):
+                    argre = re.compile(r"{{\s*%s\s*}}" % arg_name)
+                    data[linenum] = re.sub(argre, arg_val, data[linenum])
+
             return data
+
+        except FileNotFoundError as exc:
+            print(exc)
 
         return []
