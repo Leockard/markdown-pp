@@ -56,10 +56,6 @@ class Include(Module):
         if not path.isabs(filename):
             filename = path.join(pwd, filename)
 
-<<<<<<< HEAD
-        # if path.isfile(filename):
-=======
->>>>>>> recursive
         try:
             f = open(filename, "r")
             data = f.readlines()
