@@ -19,8 +19,13 @@ class Include(Module):
     Target paths can be absolute or relative to the file containing the command
     """
 
+    # matches !INCLUDE directives in .mdpp files
     includere = re.compile(r"^!INCLUDE\s+(?:\"([^\"]+)\"|'([^']+)')"
-                           r"\s+({(.*?)})?$")
+                           r"\s*(?:,\s*(\d+))?\s*"
+                           r"\s*(?:{(.*?)})?$")
+
+    # matches title lines in Markdown files
+    titlere = re.compile(r"^(:?#+.*|={3,}|-{3,})$")
 
     # includes should happen before anything else
     priority = 0
@@ -49,26 +54,45 @@ class Include(Module):
         return dict(arg_tuples)
 
     def include(self, match, pwd=""):
-        if match.group(1) is None:
-            filename = match.group(2)
-        else:
-            filename = match.group(1)
+        # file name is caught in group 1 if it's written with double quotes,
+        # or group 2 if written with single quotes
+        filename = match.group(1) or match.group(2)
+
+        shift = int(match.group(3) or 0)
 
         if not path.isabs(filename):
             filename = path.join(pwd, filename)
+
+        print(match.groups())
 
         try:
             f = open(filename, "r")
             data = f.readlines()
             f.close()
 
-            # recursively include file data
+            # line by line, apply shift and recursively include file data
             linenum = 0
             for line in data:
                 recmatch = self.includere.search(line)
                 if recmatch:
                     dirname = path.dirname(filename)
                     data[linenum:linenum+1] = self.include(recmatch, dirname)
+
+                if shift:
+
+                    titlematch = self.titlere.search(line)
+                    if titlematch:
+                        to_del = []
+                        for _ in range(shift):
+                            if data[linenum][0] == '#':
+                                data[linenum] = "#" + data[linenum]
+                            elif data[linenum][0] == '=':
+                                data[linenum] = data[linenum].replace("=", '-')
+                            elif data[linenum][0] == '-':
+                                data[linenum] = '### ' + data[linenum - 1]
+                                to_del.append(linenum - 1)
+                        for l in to_del:
+                            del data[l]
 
                 linenum += 1
 
