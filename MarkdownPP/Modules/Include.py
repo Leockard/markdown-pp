@@ -19,7 +19,8 @@ class Include(Module):
     Target paths can be absolute or relative to the file containing the command
     """
 
-    includere = re.compile(r"^!INCLUDE\s+(?:\"([^\"]+)\"|'([^']+)')\s+({(.*?)})?$")
+    includere = re.compile(r"^!INCLUDE\s+(?:\"([^\"]+)\"|'([^']+)')"
+                           r"\s+({(.*?)})?$")
 
     # includes should happen before anything else
     priority = 0
