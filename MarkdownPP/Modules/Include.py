@@ -63,8 +63,6 @@ class Include(Module):
         if not path.isabs(filename):
             filename = path.join(pwd, filename)
 
-        print(match.groups())
-
         try:
             f = open(filename, "r")
             data = f.readlines()
