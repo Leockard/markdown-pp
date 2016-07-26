@@ -11,8 +11,8 @@ import argparse
 import sys
 import MarkdownPP
 
-import os
 import time
+from os import path, walk
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
@@ -33,7 +33,7 @@ class MarkdownPPFileEventHandler(PatternMatchingEventHandler):
         mdpp = open(event.src_path, 'r')
 
         # Output file takes filename from input file but has .md extension
-        md = open(os.path.splitext(event.src_path)[0]+'.md', 'w')
+        md = open(path.splitext(event.src_path)[0]+'.md', 'w')
         MarkdownPP.MarkdownPP(input=mdpp, output=md, modules=modules)
 
         # Logs time and file changed (with colors!)
@@ -78,7 +78,7 @@ def preprocess(infile, outfile):
     else:
         md = sys.stdout
 
-    modules = MarkdownPP.modules.keys()
+    modules = list(MarkdownPP.modules.keys())
 
     if args.exclude:
         for module in args.exclude.split(','):
@@ -95,7 +95,7 @@ def preprocess(infile, outfile):
 # If watch flag is on, watch dirs instead of processing individual file
 if args.watch:
     # Get full directory path to print
-    p = os.path.abspath(args.FILENAME)
+    p = path.abspath(args.FILENAME)
     print("Watching: " + p + " (and subdirectories)")
 
     # Custom watchdog event handler specific for .mdpp files
@@ -113,11 +113,15 @@ if args.watch:
     observer.join()
 
 elif args.recursive:
-    for current, subdirs, files in os.walk(args.FILENAME):
-        for mdppfile in (os.path.abspath(os.path.join(current, f)) for f in
-                         files if f.endswith('.mdpp')):
-            print('{} -> {}'.format(mdppfile, mdppfile[:-5] + '.md'))
-            preprocess(mdppfile, mdppfile[:-5] + '.md')
+    for current, _, files in walk(args.FILENAME):
+        for mdppfile in (f for f in files if f.endswith('.mdpp')):
+            pardir = path.split(current)[1]
+            outfile = mdppfile[:-5] + '.md'
+            print('{0}/{1} -> {0}/{2}'.format(pardir, mdppfile, outfile))
+
+            abs_mdppfile = path.abspath(path.join(current, mdppfile))
+            outfile = abs_mdppfile[:-5] + '.md'
+            preprocess(abs_mdppfile, outfile)
 
 else:
     preprocess(args.FILENAME, args.output)
